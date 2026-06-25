@@ -1,0 +1,266 @@
+import type { Category, Product, Review } from '@/types'
+
+// ─── Categories ───────────────────────────────────────────────────────────────
+
+export const CATEGORIES: Category[] = [
+  {
+    id: 'cat-1',
+    name: 'Service Parts',
+    slug: 'service-parts',
+    icon: 'Wrench',
+    itemCount: 8200,
+    color: 'bg-blue-50',
+    iconColor: 'text-brand-blue',
+  },
+  {
+    id: 'cat-2',
+    name: 'Engine Parts',
+    slug: 'engine-parts',
+    icon: 'Cog',
+    itemCount: 12400,
+    color: 'bg-orange-50',
+    iconColor: 'text-brand-orange',
+  },
+  {
+    id: 'cat-3',
+    name: 'Transmission',
+    slug: 'transmission',
+    icon: 'Settings',
+    itemCount: 5100,
+    color: 'bg-green-50',
+    iconColor: 'text-brand-green',
+  },
+  {
+    id: 'cat-4',
+    name: 'Body Parts',
+    slug: 'body-parts',
+    icon: 'Car',
+    itemCount: 9800,
+    color: 'bg-purple-50',
+    iconColor: 'text-purple-600',
+  },
+  {
+    id: 'cat-5',
+    name: 'Sound Systems',
+    slug: 'sound-systems',
+    icon: 'Volume2',
+    itemCount: 2300,
+    color: 'bg-teal-50',
+    iconColor: 'text-teal-600',
+  },
+  {
+    id: 'cat-6',
+    name: 'EFC Components',
+    slug: 'efc-components',
+    icon: 'CircuitBoard',
+    itemCount: 3600,
+    color: 'bg-red-50',
+    iconColor: 'text-red-600',
+  },
+]
+
+// ─── Products ─────────────────────────────────────────────────────────────────
+
+export const PRODUCTS: Product[] = [
+  {
+    id: 'prod-1',
+    name: 'Denso Iridium Spark Plug Set',
+    brand: 'Denso',
+    sku: 'DNO-SK-IRI-4PK',
+    slug: 'denso-iridium-spark-plug-set-4pk',
+    price: 2800,
+    originalPrice: 3500,
+    images: ['/images/products/spark-plug-1.jpg', '/images/products/spark-plug-2.jpg'],
+    thumbnail: '/images/products/spark-plug-1.jpg',
+    category: CATEGORIES[0],
+    rating: 4.9,
+    reviewCount: 142,
+    stockCount: 24,
+    inStock: true,
+    condition: 'new',
+    badge: 'hot',
+    compatibleVehicles: [
+      { make: 'Toyota', model: 'Corolla', yearFrom: 2018, yearTo: 2024 },
+      { make: 'Toyota', model: 'Camry',   yearFrom: 2016, yearTo: 2023 },
+      { make: 'Toyota', model: 'Premio',  yearFrom: 2017, yearTo: 2022 },
+    ],
+    description: 'Denso Iridium Power spark plugs deliver superior ignitability and outstanding acceleration. The ultra-fine 0.4mm iridium tip reduces required voltage for consistent firing.',
+    specifications: {
+      'Thread Size': 'M14 × 1.25',
+      'Gap': '0.044" (1.1mm)',
+      'Electrode': 'Iridium',
+      'Service Interval': '100,000 km',
+      'Pack Size': '4 plugs',
+    },
+  },
+  {
+    id: 'prod-2',
+    name: 'Castrol Edge Engine Oil 5W-30',
+    brand: 'Castrol',
+    sku: 'CST-OIL-5W30-4L',
+    slug: 'castrol-edge-engine-oil-5w30-4l',
+    price: 4200,
+    originalPrice: 4800,
+    images: ['/images/products/oil-1.jpg'],
+    thumbnail: '/images/products/oil-1.jpg',
+    category: CATEGORIES[0],
+    rating: 4.8,
+    reviewCount: 89,
+    stockCount: 52,
+    inStock: true,
+    condition: 'new',
+    badge: 'sale',
+    description: 'Castrol Edge is a fully synthetic engine oil with Fluid Titanium Technology for maximum protection under pressure.',
+    specifications: {
+      'Viscosity': '5W-30',
+      'Volume': '4 Litres',
+      'Type': 'Fully Synthetic',
+      'ACEA Rating': 'A3/B4',
+    },
+  },
+  {
+    id: 'prod-3',
+    name: 'Bosch Oil Filter — OEM Grade',
+    brand: 'Bosch',
+    sku: 'BSC-FLT-OIL-0001',
+    slug: 'bosch-oil-filter-oem-grade',
+    price: 850,
+    images: ['/images/products/filter-1.jpg'],
+    thumbnail: '/images/products/filter-1.jpg',
+    category: CATEGORIES[0],
+    rating: 4.6,
+    reviewCount: 56,
+    stockCount: 120,
+    inStock: true,
+    condition: 'new',
+    badge: 'new',
+    specifications: {
+      'Inner Diameter': '62mm',
+      'Height': '95mm',
+      'Filtration': '99.5% efficiency',
+      'Compatible': 'Toyota, Nissan, Subaru',
+    },
+  },
+  {
+    id: 'prod-4',
+    name: 'Philips H4 LED Headlight Pair',
+    brand: 'Philips',
+    sku: 'PHL-LED-H4-PAIR',
+    slug: 'philips-h4-led-headlight-pair',
+    price: 6500,
+    originalPrice: 8000,
+    images: ['/images/products/headlight-1.jpg'],
+    thumbnail: '/images/products/headlight-1.jpg',
+    category: CATEGORIES[4],
+    rating: 4.9,
+    reviewCount: 203,
+    stockCount: 18,
+    inStock: true,
+    condition: 'new',
+    specifications: {
+      'Type': 'H4 LED',
+      'Lumens': '4000lm per bulb',
+      'Color Temp': '6200K Cool White',
+      'Warranty': '2 years',
+    },
+  },
+  {
+    id: 'prod-5',
+    name: 'NGK Ignition Coil — Toyota',
+    brand: 'NGK',
+    sku: 'NGK-IGN-COIL-TOY',
+    slug: 'ngk-ignition-coil-toyota',
+    price: 3200,
+    images: ['/images/products/coil-1.jpg'],
+    thumbnail: '/images/products/coil-1.jpg',
+    category: CATEGORIES[1],
+    rating: 4.7,
+    reviewCount: 34,
+    stockCount: 9,
+    inStock: true,
+    condition: 'new',
+  },
+  {
+    id: 'prod-6',
+    name: 'Aisin Brake Pad Set — Front',
+    brand: 'Aisin',
+    sku: 'ASN-BRK-FRT-TOY',
+    slug: 'aisin-brake-pad-set-front',
+    price: 4500,
+    originalPrice: 5200,
+    images: ['/images/products/brakes-1.jpg'],
+    thumbnail: '/images/products/brakes-1.jpg',
+    category: CATEGORIES[0],
+    rating: 4.8,
+    reviewCount: 91,
+    stockCount: 33,
+    inStock: true,
+    condition: 'new',
+    badge: 'sale',
+  },
+]
+
+// ─── Reviews ──────────────────────────────────────────────────────────────────
+
+export const REVIEWS: Review[] = [
+  {
+    id: 'rev-1',
+    authorName: 'James Mwangi',
+    authorInitials: 'JM',
+    avatarColor: 'bg-brand-blue',
+    rating: 5,
+    comment:
+      'Got my Toyota Hilux brake pads in under 24 hours. Genuine OEM quality — exactly what I needed. Will definitely order again.',
+    date: '2026-06-08',
+    verified: true,
+    location: 'Nairobi',
+  },
+  {
+    id: 'rev-2',
+    authorName: 'Grace Wanjiku',
+    authorInitials: 'GW',
+    avatarColor: 'bg-brand-orange',
+    rating: 5,
+    comment:
+      'The vehicle compatibility checker saved me from ordering the wrong part. Super convenient and packaging was excellent.',
+    date: '2026-06-05',
+    verified: true,
+    location: 'Mombasa',
+  },
+  {
+    id: 'rev-3',
+    authorName: 'Peter Otieno',
+    authorInitials: 'PO',
+    avatarColor: 'bg-purple-500',
+    rating: 4,
+    comment:
+      'Good quality spark plugs, arrived well packaged. Slight delay in delivery but support team kept me updated throughout.',
+    date: '2026-05-30',
+    verified: true,
+    location: 'Kisumu',
+  },
+]
+
+// ─── Vehicle Makes & Models (for search dropdowns) ────────────────────────────
+
+export const VEHICLE_MAKES = [
+  'Toyota', 'Nissan', 'Subaru', 'Mercedes-Benz', 'BMW',
+  'Honda', 'Mitsubishi', 'Mazda', 'Isuzu', 'Volkswagen',
+  'Land Rover', 'Ford', 'Hyundai', 'Kia',
+]
+
+export const VEHICLE_MODELS: Record<string, string[]> = {
+  Toyota:    ['Corolla', 'Hilux', 'Prado', 'Fortuner', 'Premio', 'Camry', 'RAV4', 'Vitz'],
+  Nissan:    ['Note', 'X-Trail', 'Patrol', 'Navara', 'Juke', 'Murano'],
+  Subaru:    ['Forester', 'Legacy', 'Outback', 'Impreza', 'XV'],
+  'Mercedes-Benz': ['C-Class', 'E-Class', 'GLE', 'ML', 'Sprinter'],
+  BMW:       ['3 Series', '5 Series', 'X3', 'X5', 'X6'],
+  Honda:     ['CR-V', 'Fit', 'Accord', 'Pilot', 'Stream'],
+}
+
+export const YEARS = Array.from({ length: 20 }, (_, i) => 2024 - i)
+
+export const ENGINE_TYPES = [
+  '1.2L Petrol', '1.5L Petrol', '1.8L Petrol', '2.0L Petrol', '2.4L Petrol',
+  '2.0L Diesel', '2.5L Diesel', '3.0L Diesel', '2.5L Hybrid',
+]
