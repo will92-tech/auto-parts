@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Breadcrumb } from '@/components/ui/Breadcrumb'
 import { FilterPanel, ActiveFilters } from '@/components/shop/FilterPanel'
 import { ProductGrid } from '@/components/shop/ProductGrid'
@@ -8,17 +9,20 @@ import { Pagination } from '@/components/ui/Pagination'
 import { useCartStore } from '@/hooks/useCart'
 import { useWishlistStore, selectWishlistIds } from '@/hooks/useWishlist'
 import { PRODUCTS } from '@/lib/data'
-import type { Product, ProductFilters, SortOption } from '@/types'
+import type { Product, ProductFilters, SortOption, CategorySlug } from '@/types'
 
 const PER_PAGE = 8
 
 // ─── Simple client-side filter + sort (replace with API calls later) ──────────
 
-function applyFilters(products: Product[], filters: ProductFilters, sort: SortOption): Product[] {
+function applyFilters(products: Product[], filters: ProductFilters, sort: SortOption, query = ''): Product[] {
   let result = [...products]
 
   if (filters.categories?.length)
     result = result.filter((p) => filters.categories!.includes(p.category.slug))
+
+  if (filters.brands?.length)
+    result = result.filter((p) => filters.brands!.includes(p.brand))
 
   if (filters.vehicle?.make)
     result = result.filter((p) =>
@@ -37,6 +41,13 @@ function applyFilters(products: Product[], filters: ProductFilters, sort: SortOp
   if (filters.rating)
     result = result.filter((p) => p.rating >= filters.rating!)
 
+  if (query.trim()) {
+    const term = query.toLowerCase()
+    result = result.filter((p) =>
+      [p.name, p.brand, p.sku, p.description, p.category.name].join(' ').toLowerCase().includes(term)
+    )
+  }
+
   switch (sort) {
     case 'price-asc':    result.sort((a, b) => a.price - b.price);            break
     case 'price-desc':   result.sort((a, b) => b.price - a.price);            break
@@ -51,16 +62,36 @@ function applyFilters(products: Product[], filters: ProductFilters, sort: SortOp
 // ─── Page Component ───────────────────────────────────────────────────────────
 
 export default function ShopPage() {
-  const [filters,        setFilters]        = useState<ProductFilters>({})
-  const [sort,           setSort]           = useState<SortOption>('best-match')
-  const [page,           setPage]           = useState(1)
-  const [mobileFilters,  setMobileFilters]  = useState(false)
+  const searchParams = useSearchParams()
+  const [filters, setFilters] = useState<ProductFilters>({})
+  const [sort, setSort] = useState<SortOption>('best-match')
+  const [page, setPage] = useState(1)
+  const [mobileFilters, setMobileFilters] = useState(false)
 
-  const addItem        = useCartStore((s) => s.addItem)
+  const addItem = useCartStore((s) => s.addItem)
   const toggleWishlist = useWishlistStore((s) => s.toggle)
-  const wishlistIds    = useWishlistStore(selectWishlistIds)
+  const wishlistIds = useWishlistStore(selectWishlistIds)
 
-  const filtered   = useMemo(() => applyFilters(PRODUCTS, filters, sort), [filters, sort])
+  useEffect(() => {
+    const company = searchParams.get('company')
+    const category = searchParams.get('category') as CategorySlug | null
+    const query = searchParams.get('q')?.trim() ?? ''
+
+    const nextFilters: ProductFilters = {}
+    if (company) nextFilters.brands = [company]
+    if (category) nextFilters.categories = [category]
+    if (query) {
+      setFilters(nextFilters)
+      setPage(1)
+      return
+    }
+
+    setFilters(nextFilters)
+    setPage(1)
+  }, [searchParams])
+
+  const query = searchParams.get('q')?.trim() ?? ''
+  const filtered = useMemo(() => applyFilters(PRODUCTS, filters, sort, query), [filters, sort, query])
   const totalPages = Math.ceil(filtered.length / PER_PAGE)
   const paginated  = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE)
 

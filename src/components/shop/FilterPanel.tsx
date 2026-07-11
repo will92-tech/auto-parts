@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { X, ChevronDown, ChevronUp, SlidersHorizontal } from 'lucide-react'
 import { cn, formatPrice } from '@/lib/utils'
-import { CATEGORIES, VEHICLE_MAKES, YEARS } from '@/lib/data'
+import { CATEGORIES, PART_SEARCH_COMPANIES, VEHICLE_MAKES, YEARS } from '@/lib/data'
 import { Button } from '@/components/ui/Button'
 import type { ProductFilters, CategorySlug } from '@/types'
 
@@ -114,6 +114,13 @@ export function ActiveFilters({
     remove: () => onChange({ ...filters, vehicle: { ...filters.vehicle, make: undefined } }),
   })
 
+  filters.brands?.forEach((brand) => {
+    tags.push({
+      label: brand,
+      remove: () => onChange({ ...filters, brands: filters.brands?.filter((b) => b !== brand) }),
+    })
+  })
+
   filters.inStockOnly && tags.push({
     label: 'In Stock',
     remove: () => onChange({ ...filters, inStockOnly: false }),
@@ -214,7 +221,8 @@ export function FilterPanel({
               {(filters.categories?.length ?? 0) +
                (filters.conditions?.length ?? 0) +
                (filters.inStockOnly ? 1 : 0) +
-               (filters.vehicle?.make ? 1 : 0)}
+               (filters.vehicle?.make ? 1 : 0) +
+               (filters.brands?.length ?? 0)}
             </span>
           )}
         </div>
@@ -250,6 +258,22 @@ export function FilterPanel({
               onChange={(v) => toggleCategory(cat.slug, v)}
             />
           ))}
+        </FilterSection>
+
+        {/* Company */}
+        <FilterSection title="Company">
+          <label htmlFor="filter-brand" className="sr-only">Select company</label>
+          <select
+            id="filter-brand"
+            value={filters.brands?.[0] ?? ''}
+            onChange={(e) => onChange({ ...filters, brands: e.target.value ? [e.target.value] : undefined })}
+            className="w-full px-2.5 py-2 border border-slate-200 rounded-lg text-xs text-slate-600 focus:outline-none focus:border-brand-blue"
+          >
+            <option value="">All companies</option>
+            {PART_SEARCH_COMPANIES.map((brand) => (
+              <option key={brand} value={brand}>{brand}</option>
+            ))}
+          </select>
         </FilterSection>
 
         {/* Vehicle Make */}

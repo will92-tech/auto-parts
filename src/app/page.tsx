@@ -7,12 +7,15 @@
 
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 import { ArrowRight, Truck, Shield, Headphones, RefreshCw, Zap } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { CategoryGrid } from '@/components/shop/CategoryCard'
 import { ProductCard } from '@/components/shop/ProductCard'
-import { CATEGORIES, PRODUCTS, REVIEWS, VEHICLE_MAKES, VEHICLE_MODELS, YEARS, ENGINE_TYPES } from '@/lib/data'
+import { CATEGORIES, PRODUCTS, REVIEWS, VEHICLE_MAKES, YEARS, ENGINE_TYPES, PART_SEARCH_COMPANIES, POPULAR_PART_TYPES } from '@/lib/data'
 import { useCartStore } from '@/hooks/useCart'
 import { useWishlistStore, selectWishlistIds } from '@/hooks/useWishlist'
 import { formatPrice } from '@/lib/utils'
@@ -31,12 +34,22 @@ const WHY_US = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function HomePage() {
-  const addItem        = useCartStore((s) => s.addItem)
+  const router = useRouter()
+  const addItem = useCartStore((s) => s.addItem)
   const toggleWishlist = useWishlistStore((s) => s.toggle)
-  const wishlistIds    = useWishlistStore(selectWishlistIds)
+  const wishlistIds = useWishlistStore(selectWishlistIds)
+  const [company, setCompany] = useState('')
+  const [searchTerm, setSearchTerm] = useState('')
 
   const handleAddToCart = (product: Product) => addItem(product)
-  const handleWishlist  = (product: Product) => toggleWishlist(product)
+  const handleWishlist = (product: Product) => toggleWishlist(product)
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    const params = new URLSearchParams()
+    if (company) params.set('company', company)
+    if (searchTerm.trim()) params.set('q', searchTerm.trim())
+    router.push(`/shop${params.toString() ? `?${params.toString()}` : ''}`)
+  }
 
   const bestSellers = PRODUCTS.slice(0, 4)
 
@@ -104,7 +117,7 @@ export default function HomePage() {
               </div>
 
               {/* Search row */}
-              <div className="flex gap-2">
+              <form onSubmit={handleSearch} className="flex flex-col gap-2 sm:flex-row">
                 <div className="flex-1 flex items-center bg-white/8 border border-white/15 rounded-lg px-3">
                   <svg className="w-4 h-4 text-white/40 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z" />
@@ -113,13 +126,26 @@ export default function HomePage() {
                     type="search"
                     placeholder="Search parts, brands, SKU…"
                     aria-label="Search parts"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
                     className="flex-1 bg-transparent text-sm text-white px-2 py-2.5 outline-none placeholder:text-white/35"
                   />
                 </div>
-                <Button variant="primary" size="md">
+                <select
+                  aria-label="Search by company"
+                  value={company}
+                  onChange={(e) => setCompany(e.target.value)}
+                  className="min-w-[140px] px-3 py-2.5 bg-white/8 border border-white/15 rounded-lg text-sm text-white/80 focus:outline-none focus:border-brand-blue appearance-none"
+                >
+                  <option value="" className="bg-navy">Company</option>
+                  {PART_SEARCH_COMPANIES.map((item) => (
+                    <option key={item} value={item} className="bg-navy">{item}</option>
+                  ))}
+                </select>
+                <Button type="submit" variant="primary" size="md">
                   Search Parts
                 </Button>
-              </div>
+              </form>
             </div>
 
             {/* CTA links */}
@@ -180,8 +206,44 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ─────────────────────── POPULAR PART TYPES ─────────────────────── */}
+      <section className="py-10 px-4 bg-slate-50" aria-labelledby="popular-parts-heading">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-between mb-5">
+            <div>
+              <h2 id="popular-parts-heading" className="text-lg font-bold text-navy">
+                Popular <span className="text-brand-blue">Part Types</span>
+              </h2>
+              <p className="text-xs text-slate-400 mt-0.5">Spark plugs, air cleaners, and brake pads for everyday maintenance</p>
+            </div>
+            <Link href="/shop" className="text-xs font-semibold text-brand-blue hover:underline flex items-center gap-1">
+              Explore shop <ArrowRight size={12} aria-hidden />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {POPULAR_PART_TYPES.map((part) => (
+              <Link
+                key={part.slug}
+                href={`/shop?company=${encodeURIComponent(part.company)}&q=${encodeURIComponent(part.name)}`}
+                className="group overflow-hidden rounded-xl border border-slate-200 bg-white hover:border-brand-blue hover:shadow-hover transition-all"
+              >
+                <div className="relative h-36 bg-slate-50">
+                  <Image src={part.image} alt={part.name} fill className="object-contain p-3" sizes="(max-width: 768px) 100vw, 33vw" />
+                </div>
+                <div className="p-4">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">{part.company}</p>
+                  <h3 className="mt-1 text-sm font-semibold text-navy group-hover:text-brand-blue transition-colors">{part.name}</h3>
+                  <p className="mt-1 text-xs text-slate-500 leading-relaxed">{part.blurb}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ─────────────────────── BEST SELLERS ────────────────────────────── */}
-      <section className="py-10 px-4 bg-slate-50" aria-labelledby="bestsellers-heading">
+      <section className="py-10 px-4 bg-white" aria-labelledby="bestsellers-heading">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between mb-5">
             <div>

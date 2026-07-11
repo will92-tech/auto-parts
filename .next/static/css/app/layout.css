@@ -1108,6 +1108,9 @@ video {
 .min-w-0 {
   min-width: 0px;
 }
+.min-w-\[140px\] {
+  min-width: 140px;
+}
 .max-w-5xl {
   max-width: 64rem;
 }
@@ -2374,6 +2377,10 @@ select {
 
   .sm\:grid-cols-3 {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .sm\:flex-row {
+    flex-direction: row;
   }
 }
 

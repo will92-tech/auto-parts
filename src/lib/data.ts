@@ -249,6 +249,34 @@ export const VEHICLE_MAKES = [
   'Land Rover', 'Ford', 'Hyundai', 'Kia',
 ]
 
+export const PART_SEARCH_COMPANIES = [
+  'Denso', 'Bosch', 'NGK', 'Aisin', 'Philips', 'MANN-FILTER', 'K&N', 'TRW',
+]
+
+export const POPULAR_PART_TYPES = [
+  {
+    name: 'Spark Plugs',
+    slug: 'spark-plugs',
+    image: '/images/products/spark-plug-part.svg',
+    company: 'NGK',
+    blurb: 'Reliable ignition for smooth starts and better fuel efficiency.',
+  },
+  {
+    name: 'Air Cleaner',
+    slug: 'air-cleaner',
+    image: '/images/products/air-cleaner.svg',
+    company: 'MANN-FILTER',
+    blurb: 'Clean airflow for stronger engine performance and protection.',
+  },
+  {
+    name: 'Brake Pads',
+    slug: 'brake-pads',
+    image: '/images/products/brake-pads.svg',
+    company: 'Aisin',
+    blurb: 'Quiet, durable stopping power for daily drives and heavy use.',
+  },
+]
+
 export const VEHICLE_MODELS: Record<string, string[]> = {
   Toyota:    ['Corolla', 'Hilux', 'Prado', 'Fortuner', 'Premio', 'Camry', 'RAV4', 'Vitz'],
   Nissan:    ['Note', 'X-Trail', 'Patrol', 'Navara', 'Juke', 'Murano'],
