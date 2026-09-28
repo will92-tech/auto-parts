@@ -1,148 +1,88 @@
-# AutoPartsPro — Next.js Frontend
+# AutoPartsPro
 
-Kenya's #1 automotive parts e-commerce platform built with Next.js 14, TypeScript, and Tailwind CSS.
+Kenya-focused automotive parts marketplace with a Next.js frontend and FastAPI backend.
 
-## Tech Stack
+## Project structure
 
-| Layer       | Technology                |
-|-------------|---------------------------|
-| Framework   | Next.js 14 (App Router)   |
-| Language    | TypeScript (strict)       |
-| Styling     | Tailwind CSS 3            |
-| State       | Zustand (cart + wishlist) |
-| Icons       | Lucide React              |
-| Fonts       | Inter + Poppins (Google)  |
+- `src/` — Next.js 14 App Router frontend
+- `backend/` — FastAPI, SQLAlchemy, PostgreSQL API
+- `backend/tests/` — backend smoke tests
 
-## Quick Start
+## Frontend setup
 
 ```bash
-# 1. Install dependencies
 npm install
-
-# 2. Run dev server
+cp .env.local.example .env.local
 npm run dev
-
-# 3. Open browser
-# http://localhost:3000
 ```
 
-## Project Structure
+The frontend runs at `http://localhost:3000`. Set `NEXT_PUBLIC_API_URL` in `.env.local` to the backend URL when it is not `http://localhost:8000`.
 
-```
-src/
-├── app/
-│   ├── layout.tsx          # Root layout — wraps all pages with Navbar
-│   ├── page.tsx            # Homepage
-│   └── globals.css         # Tailwind directives + base styles
-│
-├── components/
-│   ├── ui/
-│   │   ├── Button.tsx      # Multi-variant button (primary/outline/ghost/orange)
-│   │   ├── Badge.tsx       # Product labels — HOT, SALE, NEW, stock status
-│   │   └── StarRating.tsx  # Accessible star display with review count
-│   │
-│   ├── layout/
-│   │   ├── Navbar.tsx      # Full navbar — desktop mega menu + mobile drawer
-│   │   └── NavbarWrapper.tsx # Client wrapper feeding Zustand counts to Navbar
-│   │
-│   └── shop/
-│       ├── ProductCard.tsx # 3 variants: grid | list | compact
-│       ├── CategoryCard.tsx # 3 variants: default | featured | pill
-│       └── ProductGrid.tsx  # Grid/list wrapper with sort + view toggle
-│
-├── hooks/
-│   ├── useCart.ts          # Zustand cart store (persisted to localStorage)
-│   └── useWishlist.ts      # Zustand wishlist store (persisted)
-│
-├── lib/
-│   ├── utils.ts            # cn(), formatPrice(), helpers
-│   └── data.ts             # Mock data — replace with API calls
-│
-├── types/
-│   └── index.ts            # All TypeScript interfaces
-│
-└── index.ts                # Barrel exports — clean import paths
+Useful commands:
+
+```bash
+npm run type-check
+npm run lint
+npm run build
 ```
 
-## Component Usage
+## Backend setup with Docker
 
-### Navbar
-```tsx
-import { Navbar } from '@/components/layout/Navbar'
-
-// In a client component with live counts:
-<Navbar
-  cartCount={3}
-  wishlistCount={5}
-  user={{ firstName: 'James', avatarInitials: 'JM' }}
-  activePath="/shop"
-/>
-
-// Or use NavbarWrapper (reads Zustand automatically)
-import { NavbarWrapper } from '@/components/layout/NavbarWrapper'
-<NavbarWrapper />
+```bash
+cd backend
+docker compose up --build
 ```
 
-### ProductCard
-```tsx
-import { ProductCard } from '@/components/shop/ProductCard'
+The API runs at `http://localhost:8000`; interactive documentation is available at `/docs`.
 
-// Grid card (default)
-<ProductCard
-  product={product}
-  onAddToCart={(p) => addItem(p)}
-  onToggleWishlist={(p) => toggleWishlist(p)}
-  isWishlisted={wishlistIds.has(product.id)}
-/>
+## Backend setup locally
 
-// List view
-<ProductCard product={product} variant="list" onAddToCart={...} />
-
-// Compact (carousel / related products)
-<ProductCard product={product} variant="compact" />
+```bash
+cd backend
+python -m venv .venv
+source .venv/bin/activate       # Windows: .venv\\Scripts\\activate
+pip install -r requirements.txt
+cp .env.example .env
+alembic upgrade head
+uvicorn main:app --reload
 ```
 
-### CategoryCard
-```tsx
-import { CategoryCard, CategoryGrid } from '@/components/shop/CategoryCard'
+Use a strong `SECRET_KEY` and a real PostgreSQL `DATABASE_URL` outside local development. The API supports SQLite for lightweight local tests.
 
-// Single card
-<CategoryCard category={category} variant="default" />
-<CategoryCard category={category} variant="featured" />
-<CategoryCard category={category} variant="pill" />
+## Main API endpoints
 
-// Responsive grid of all categories
-<CategoryGrid categories={CATEGORIES} columns={3} />
+- `GET /health`
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `GET /api/auth/me`
+- `GET /api/categories/`
+- `GET /api/products/`
+- `GET /api/products/search?q=...`
+- `GET /api/products/slug/{slug}`
+- `GET /api/cart/`
+- `POST /api/cart/items`
+- `POST /api/orders/`
+- `GET /api/orders/`
+- `POST /api/users/saved-vehicles`
+
+Order status changes require an authenticated administrator.
+
+## Testing
+
+```bash
+cd backend
+pytest
 ```
 
-### Cart Store
-```tsx
-import { useCartStore, selectCartCount } from '@/hooks/useCart'
+For frontend validation, run `npm run type-check` and `npm run build` before opening a pull request.
 
-const addItem    = useCartStore((s) => s.addItem)
-const cartCount  = useCartStore(selectCartCount)
-const cartTotal  = useCartStore(selectCartTotal)
-```
+## Configuration
 
-## Design Tokens
+Backend variables are documented in `backend/.env.example`. Frontend configuration is documented in `.env.local.example`. Never commit `.env`, `.env.local`, credentials, payment keys, or production secrets.
 
-| Token             | Value     |
-|-------------------|-----------|
-| Navy (primary)    | #0F172A   |
-| Brand Blue        | #2563EB   |
-| Brand Orange      | #F97316   |
-| Brand Green       | #22C55E   |
-| Border radius     | 8px / 12px / 16px |
-| Font (body)       | Inter     |
-| Font (headings)   | Poppins   |
+## Development notes
 
-## Next Steps — Backend Integration
-
-1. Replace `src/lib/data.ts` mock data with `fetch()` calls to your API
-2. Add `app/shop/page.tsx` — full shop page with FilterPanel sidebar
-3. Add `app/shop/product/[slug]/page.tsx` — product detail page
-4. Add `app/cart/page.tsx` — cart page
-5. Add `app/checkout/page.tsx` — 4-step checkout
-6. Add `app/account/` — user dashboard, orders, wishlist
-7. Wire authentication (NextAuth.js recommended)
-8. Add M-Pesa payment integration (Safaricom Daraja API)
+- Product data is loaded from the backend on the shop and product-detail pages.
+- The cart remains available locally through Zustand and local storage.
+- Checkout currently validates delivery details and payment selection in the UI. Payment-provider submission and authenticated order creation should be enabled only after the authentication/session flow is connected.
+- M-Pesa credentials belong only in the backend environment.
