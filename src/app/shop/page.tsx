@@ -1,173 +1,40 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { Breadcrumb } from '@/components/ui/Breadcrumb'
-import { FilterPanel, ActiveFilters } from '@/components/shop/FilterPanel'
 import { ProductGrid } from '@/components/shop/ProductGrid'
-import { Pagination } from '@/components/ui/Pagination'
 import { useCartStore } from '@/hooks/useCart'
 import { useWishlistStore, selectWishlistIds } from '@/hooks/useWishlist'
-import { PRODUCTS } from '@/lib/data'
-import type { Product, ProductFilters, SortOption, CategorySlug } from '@/types'
+import { api, type ApiProduct } from '@/lib/api'
+import type { Product, SortOption } from '@/types'
 
-const PER_PAGE = 8
-
-// ─── Simple client-side filter + sort (replace with API calls later) ──────────
-
-function applyFilters(products: Product[], filters: ProductFilters, sort: SortOption, query = ''): Product[] {
-  let result = [...products]
-
-  if (filters.categories?.length)
-    result = result.filter((p) => filters.categories!.includes(p.category.slug))
-
-  if (filters.brands?.length)
-    result = result.filter((p) => filters.brands!.includes(p.brand))
-
-  if (filters.vehicle?.make)
-    result = result.filter((p) =>
-      p.compatibleVehicles?.some((v) => v.make === filters.vehicle!.make)
-    )
-
-  if (filters.inStockOnly)
-    result = result.filter((p) => p.inStock)
-
-  if (filters.conditions?.length)
-    result = result.filter((p) => filters.conditions!.includes(p.condition))
-
-  if (filters.maxPrice)
-    result = result.filter((p) => p.price <= filters.maxPrice!)
-
-  if (filters.rating)
-    result = result.filter((p) => p.rating >= filters.rating!)
-
-  if (query.trim()) {
-    const term = query.toLowerCase()
-    result = result.filter((p) =>
-      [p.name, p.brand, p.sku, p.description, p.category.name].join(' ').toLowerCase().includes(term)
-    )
-  }
-
-  switch (sort) {
-    case 'price-asc':    result.sort((a, b) => a.price - b.price);            break
-    case 'price-desc':   result.sort((a, b) => b.price - a.price);            break
-    case 'best-rated':   result.sort((a, b) => b.rating - a.rating);          break
-    case 'most-popular': result.sort((a, b) => b.reviewCount - a.reviewCount); break
-    case 'newest':       result.sort((a, b) => a.id.localeCompare(b.id));     break
-  }
-
-  return result
+function mapProduct(p: ApiProduct): Product {
+  return { id: p.id, name: p.name, brand: p.brand, sku: p.sku, slug: p.slug, price: p.price, originalPrice: p.original_price ?? undefined, thumbnail: p.thumbnail, images: p.images ?? [p.thumbnail], category: { id: 'api', name: 'Auto Parts', slug: 'service-parts', icon: 'Wrench', itemCount: 0, color: 'bg-blue-50', iconColor: 'text-brand-blue' }, rating: p.rating ?? 0, reviewCount: p.review_count ?? 0, stockCount: p.stock_count ?? 0, inStock: p.in_stock ?? false, condition: (p.condition as Product['condition']) ?? 'new', badge: (p.badge as Product['badge']) ?? undefined, description: p.description ?? undefined, specifications: p.specifications ?? {}, tags: p.tags ?? [], compatibleVehicles: p.compatibilities?.map(c => ({ make: c.make, model: c.model, yearFrom: c.year_from, yearTo: c.year_to, engine: c.engine ?? undefined })) }
 }
 
-// ─── Page Component ───────────────────────────────────────────────────────────
-
 export default function ShopPage() {
-  const searchParams = useSearchParams()
-  const [filters, setFilters] = useState<ProductFilters>({})
-  const [sort, setSort] = useState<SortOption>('best-match')
-  const [page, setPage] = useState(1)
-  const [mobileFilters, setMobileFilters] = useState(false)
-
-  const addItem = useCartStore((s) => s.addItem)
-  const toggleWishlist = useWishlistStore((s) => s.toggle)
+  const params = useSearchParams()
+  const addItem = useCartStore(s => s.addItem)
+  const toggleWishlist = useWishlistStore(s => s.toggle)
   const wishlistIds = useWishlistStore(selectWishlistIds)
+  const [products, setProducts] = useState<Product[]>([])
+  const [total, setTotal] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [sort, setSort] = useState<SortOption>((params.get('sort') as SortOption) || 'best-match')
 
   useEffect(() => {
-    const company = searchParams.get('company')
-    const category = searchParams.get('category') as CategorySlug | null
-    const query = searchParams.get('q')?.trim() ?? ''
-
-    const nextFilters: ProductFilters = {}
-    if (company) nextFilters.brands = [company]
-    if (category) nextFilters.categories = [category]
-    if (query) {
-      setFilters(nextFilters)
-      setPage(1)
-      return
+    const load = async () => {
+      setLoading(true); setError('')
+      try {
+        const query = new URLSearchParams({ limit: '24', sort })
+        for (const key of ['category', 'company']) { const value = params.get(key); if (value) query.set(key === 'company' ? 'brand' : key, value) }
+        const q = params.get('q'); if (q) { const result = await api.search(q); setProducts(result.map(mapProduct)); setTotal(result.length); return }
+        const result = await api.products(query.toString()); setProducts(result.items.map(mapProduct)); setTotal(result.total)
+      } catch (e) { setError(e instanceof Error ? e.message : 'Unable to load products') } finally { setLoading(false) }
     }
+    load()
+  }, [params, sort])
 
-    setFilters(nextFilters)
-    setPage(1)
-  }, [searchParams])
-
-  const query = searchParams.get('q')?.trim() ?? ''
-  const filtered = useMemo(() => applyFilters(PRODUCTS, filters, sort, query), [filters, sort, query])
-  const totalPages = Math.ceil(filtered.length / PER_PAGE)
-  const paginated  = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE)
-
-  const handleFilterChange = (next: ProductFilters) => {
-    setFilters(next)
-    setPage(1)
-  }
-
-  const handleSortChange = (s: SortOption) => {
-    setSort(s)
-    setPage(1)
-  }
-
-  return (
-    <div className="min-h-screen bg-slate-50">
-      {/* ── Top Bar ────────────────────────────────────────────────────── */}
-      <div className="bg-white border-b border-slate-200 px-4 py-3">
-        <div className="max-w-7xl mx-auto">
-          <Breadcrumb items={[{ label: 'Shop', href: '/shop' }]} />
-          <h1 className="text-lg font-bold text-navy mt-1">
-            All Parts
-            <span className="text-sm font-normal text-slate-400 ml-2">
-              ({filtered.length.toLocaleString()} products)
-            </span>
-          </h1>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto flex min-h-screen">
-
-        {/* ── Desktop Filter Sidebar ─────────────────────────────────── */}
-        <div className="hidden lg:block sticky top-14 self-start h-[calc(100vh-56px)] overflow-y-auto">
-          <FilterPanel
-            filters={filters}
-            onChange={handleFilterChange}
-            totalCount={filtered.length}
-          />
-        </div>
-
-        {/* ── Main Content ───────────────────────────────────────────── */}
-        <main className="flex-1 p-4 min-w-0">
-
-          {/* Active filters */}
-          <ActiveFilters filters={filters} onChange={handleFilterChange} />
-
-          {/* Product grid with toolbar */}
-          <ProductGrid
-            products={paginated}
-            totalCount={filtered.length}
-            wishlisted={wishlistIds}
-            onAddToCart={addItem}
-            onToggleWishlist={(p) => toggleWishlist(p)}
-            onSortChange={handleSortChange}
-            onToggleMobileFilters={() => setMobileFilters(true)}
-          />
-
-          {/* Pagination */}
-          <Pagination
-            page={page}
-            totalPages={totalPages}
-            onPageChange={(p) => { setPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
-            className="mt-6"
-          />
-        </main>
-      </div>
-
-      {/* ── Mobile Filter Drawer ───────────────────────────────────── */}
-      {mobileFilters && (
-        <FilterPanel
-          filters={filters}
-          onChange={handleFilterChange}
-          onClose={() => setMobileFilters(false)}
-          isMobile
-          totalCount={filtered.length}
-        />
-      )}
-    </div>
-  )
+  return <section className="max-w-7xl mx-auto px-4 py-8"><div className="mb-6"><p className="text-xs uppercase tracking-widest text-brand-blue font-bold">AutoPartsPro shop</p><h1 className="text-3xl font-display font-bold text-navy mt-1">Find the right part</h1><p className="text-sm text-slate-500 mt-2">Search genuine parts by name, brand, category, or SKU.</p></div>{error ? <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}. Make sure the backend is running at {process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'}.</div> : <ProductGrid products={products} totalCount={total} loading={loading} wishlisted={wishlistIds} onAddToCart={addItem} onToggleWishlist={toggleWishlist} onSortChange={setSort} />}</section>
 }
