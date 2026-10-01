@@ -1,0 +1,67 @@
+'use client'
+
+import { useMemo } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { CategoryGrid } from '@/components/shop/CategoryCard'
+import { ProductGrid } from '@/components/shop/ProductGrid'
+import { CATEGORIES, PRODUCTS } from '@/lib/data'
+import { useCartStore } from '@/hooks/useCart'
+import { useWishlistStore, selectWishlistIds } from '@/hooks/useWishlist'
+import type { Product } from '@/types'
+
+export default function ShopPage() {
+  const searchParams = useSearchParams()
+  const addItem = useCartStore((s) => s.addItem)
+  const toggleWishlist = useWishlistStore((s) => s.toggle)
+  const wishlistIds = useWishlistStore(selectWishlistIds)
+
+  const category = searchParams.get('category')
+  const brand = searchParams.get('brand')
+
+  const filteredProducts = useMemo(() => {
+    return PRODUCTS.filter((product) => {
+      const matchesCategory = !category || product.category.slug === category
+      const matchesBrand = !brand || product.brand.toLowerCase() === brand.toLowerCase()
+      return matchesCategory && matchesBrand
+    })
+  }, [category, brand])
+
+  const handleAddToCart = (product: Product) => addItem(product)
+  const handleToggleWishlist = (product: Product, wishlisted: boolean) => {
+    if (wishlisted) {
+      toggleWishlist(product)
+      return
+    }
+    toggleWishlist(product)
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-50">
+      <div className="bg-white border-b border-slate-200 px-4 py-6">
+        <div className="max-w-7xl mx-auto">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-blue">Shop all parts</p>
+          <h1 className="mt-2 text-3xl font-bold text-navy">Find the right fit for your vehicle</h1>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
+        <section>
+          <div className="mb-4 flex items-center justify-between gap-4">
+            <h2 className="text-lg font-semibold text-navy">Browse by category</h2>
+          </div>
+          <CategoryGrid categories={CATEGORIES} columns={3} />
+        </section>
+
+        <section>
+          <ProductGrid
+            products={filteredProducts}
+            totalCount={filteredProducts.length}
+            onAddToCart={handleAddToCart}
+            onToggleWishlist={handleToggleWishlist}
+            wishlisted={new Set(wishlistIds)}
+          />
+        </section>
+      </div>
+    </div>
+  )
+}
