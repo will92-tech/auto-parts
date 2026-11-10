@@ -1,1 +1,185 @@
-/**\n * API Client Configuration\n * \n * Usage in components:\n * import { api } from '@/lib/api'\n * \n * const products = await api.getProducts({ category: 'service-parts' })\n * const cart = await api.getCart()\n */\n\nconst API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'\n\ninterface FetchOptions extends RequestInit {\n  skipAuth?: boolean\n}\n\nasync function fetchAPI<T = any>(\n  endpoint: string,\n  options?: FetchOptions\n): Promise<T> {\n  const { skipAuth = false, ...fetchOptions } = options || {}\n\n  const headers: HeadersInit = {\n    'Content-Type': 'application/json',\n    ...fetchOptions.headers,\n  }\n\n  // Add JWT token if available and not skipped\n  if (!skipAuth) {\n    const token = localStorage.getItem('accessToken')\n    if (token) {\n      headers['Authorization'] = `Bearer ${token}`\n    }\n  }\n\n  const url = `${API_URL}${endpoint}`\n  const response = await fetch(url, {\n    ...fetchOptions,\n    headers,\n  })\n\n  if (!response.ok) {\n    const error = await response.json().catch(() => ({}));\n    throw new Error(error.detail || `API Error: ${response.statusText}`)\n  }\n\n  return response.json()\n}\n\n// ── Products ──────────────────────────────────────────────────────────\n\nexport const api = {\n  // Products\n  products: {\n    list: async (filters?: {\n      category?: string\n      brand?: string\n      minPrice?: number\n      maxPrice?: number\n      inStockOnly?: boolean\n      sort?: 'best-match' | 'price-asc' | 'price-desc' | 'newest' | 'best-rated' | 'most-popular'\n      skip?: number\n      limit?: number\n    }) => {\n      const params = new URLSearchParams()\n      if (filters?.category) params.append('category', filters.category)\n      if (filters?.brand) params.append('brand', filters.brand)\n      if (filters?.minPrice) params.append('min_price', String(filters.minPrice))\n      if (filters?.maxPrice) params.append('max_price', String(filters.maxPrice))\n      if (filters?.inStockOnly !== undefined) params.append('in_stock_only', String(filters.inStockOnly))\n      if (filters?.sort) params.append('sort', filters.sort)\n      if (filters?.skip) params.append('skip', String(filters.skip))\n      if (filters?.limit) params.append('limit', String(filters.limit))\n\n      return fetchAPI(`/products?${params.toString()}`, { skipAuth: true })\n    },\n\n    get: (id: string) => fetchAPI(`/products/${id}`, { skipAuth: true }),\n    getBySlug: (slug: string) => fetchAPI(`/products/slug/${slug}`, { skipAuth: true }),\n    search: (query: string, limit?: number) => {\n      const params = new URLSearchParams({ q: query })\n      if (limit) params.append('limit', String(limit))\n      return fetchAPI(`/products/search?${params.toString()}`, { skipAuth: true })\n    },\n  },\n\n  // Categories\n  categories: {\n    list: () => fetchAPI('/categories', { skipAuth: true }),\n    get: (id: string) => fetchAPI(`/categories/${id}`, { skipAuth: true }),\n    getBySlug: (slug: string) => fetchAPI(`/categories/slug/${slug}`, { skipAuth: true }),\n  },\n\n  // Cart\n  cart: {\n    get: () => fetchAPI('/cart'),\n    addItem: (productId: string, quantity: number = 1) =>\n      fetchAPI('/cart/items', {\n        method: 'POST',\n        body: JSON.stringify({ product_id: productId, quantity }),\n      }),\n    updateItem: (itemId: string, quantity: number) =>\n      fetchAPI(`/cart/items/${itemId}`, {\n        method: 'PATCH',\n        body: JSON.stringify({ quantity }),\n      }),\n    removeItem: (itemId: string) =>\n      fetchAPI(`/cart/items/${itemId}`, { method: 'DELETE' }),\n    clear: () => fetchAPI('/cart', { method: 'DELETE' }),\n  },\n\n  // Orders\n  orders: {\n    create: (items: Array<{ product_id: string; quantity: number }>, paymentMethod: string) =>\n      fetchAPI('/orders', {\n        method: 'POST',\n        body: JSON.stringify({\n          items,\n          payment_method: paymentMethod,\n        }),\n      }),\n    list: (skip?: number, limit?: number, status?: string) => {\n      const params = new URLSearchParams()\n      if (skip) params.append('skip', String(skip))\n      if (limit) params.append('limit', String(limit))\n      if (status) params.append('status_filter', status)\n      return fetchAPI(`/orders?${params.toString()}`)\n    },\n    get: (id: string) => fetchAPI(`/orders/${id}`),\n  },\n\n  // Authentication\n  auth: {\n    register: async (email: string, firstName: string, lastName: string, password: string) => {\n      const response = await fetchAPI('/auth/register', {\n        method: 'POST',\n        skipAuth: true,\n        body: JSON.stringify({\n          email,\n          first_name: firstName,\n          last_name: lastName,\n          password,\n        }),\n      })\n      localStorage.setItem('accessToken', response.access_token)\n      return response\n    },\n\n    login: async (email: string, password: string) => {\n      const response = await fetchAPI('/auth/login', {\n        method: 'POST',\n        skipAuth: true,\n        body: JSON.stringify({ email, password }),\n      })\n      localStorage.setItem('accessToken', response.access_token)\n      return response\n    },\n\n    logout: () => {\n      localStorage.removeItem('accessToken')\n    },\n\n    me: () => fetchAPI('/auth/me'),\n  },\n\n  // Users\n  users: {\n    getProfile: () => fetchAPI('/users/profile'),\n    addSavedVehicle: (vehicle: {\n      make: string\n      model: string\n      year: string\n      engine?: string\n      registration?: string\n    }) =>\n      fetchAPI('/users/saved-vehicles', {\n        method: 'POST',\n        body: JSON.stringify(vehicle),\n      }),\n    getSavedVehicles: () => fetchAPI('/users/saved-vehicles'),\n    deleteSavedVehicle: (vehicleId: string) =>\n      fetchAPI(`/users/saved-vehicles/${vehicleId}`, { method: 'DELETE' }),\n  },\n}\n"
+/**
+ * API Client Configuration
+ * 
+ * Usage in components:
+ * import { api } from '@/lib/api'
+ * 
+ * const products = await api.getProducts({ category: 'service-parts' })
+ * const cart = await api.getCart()
+ */
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
+
+interface FetchOptions extends RequestInit {
+  skipAuth?: boolean
+}
+
+async function fetchAPI<T = any>(
+  endpoint: string,
+  options?: FetchOptions
+): Promise<T> {
+  const { skipAuth = false, ...fetchOptions } = options || {}
+
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+    ...fetchOptions.headers,
+  }
+
+  // Add JWT token if available and not skipped
+  if (!skipAuth) {
+    const token = localStorage.getItem('accessToken')
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+  }
+
+  const url = `${API_URL}${endpoint}`
+  const response = await fetch(url, {
+    ...fetchOptions,
+    headers,
+  })
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || `API Error: ${response.statusText}`)
+  }
+
+  return response.json()
+}
+
+// ── Products ──────────────────────────────────────────────────────────
+
+export const api = {
+  // Products
+  products: {
+    list: async (filters?: {
+      category?: string
+      brand?: string
+      minPrice?: number
+      maxPrice?: number
+      inStockOnly?: boolean
+      sort?: 'best-match' | 'price-asc' | 'price-desc' | 'newest' | 'best-rated' | 'most-popular'
+      skip?: number
+      limit?: number
+    }) => {
+      const params = new URLSearchParams()
+      if (filters?.category) params.append('category', filters.category)
+      if (filters?.brand) params.append('brand', filters.brand)
+      if (filters?.minPrice) params.append('min_price', String(filters.minPrice))
+      if (filters?.maxPrice) params.append('max_price', String(filters.maxPrice))
+      if (filters?.inStockOnly !== undefined) params.append('in_stock_only', String(filters.inStockOnly))
+      if (filters?.sort) params.append('sort', filters.sort)
+      if (filters?.skip) params.append('skip', String(filters.skip))
+      if (filters?.limit) params.append('limit', String(filters.limit))
+
+      return fetchAPI(`/products?${params.toString()}`, { skipAuth: true })
+    },
+
+    get: (id: string) => fetchAPI(`/products/${id}`, { skipAuth: true }),
+    getBySlug: (slug: string) => fetchAPI(`/products/slug/${slug}`, { skipAuth: true }),
+    search: (query: string, limit?: number) => {
+      const params = new URLSearchParams({ q: query })
+      if (limit) params.append('limit', String(limit))
+      return fetchAPI(`/products/search?${params.toString()}`, { skipAuth: true })
+    },
+  },
+
+  // Categories
+  categories: {
+    list: () => fetchAPI('/categories', { skipAuth: true }),
+    get: (id: string) => fetchAPI(`/categories/${id}`, { skipAuth: true }),
+    getBySlug: (slug: string) => fetchAPI(`/categories/slug/${slug}`, { skipAuth: true }),
+  },
+
+  // Cart
+  cart: {
+    get: () => fetchAPI('/cart'),
+    addItem: (productId: string, quantity: number = 1) =>
+      fetchAPI('/cart/items', {
+        method: 'POST',
+        body: JSON.stringify({ product_id: productId, quantity }),
+      }),
+    updateItem: (itemId: string, quantity: number) =>
+      fetchAPI(`/cart/items/${itemId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ quantity }),
+      }),
+    removeItem: (itemId: string) =>
+      fetchAPI(`/cart/items/${itemId}`, { method: 'DELETE' }),
+    clear: () => fetchAPI('/cart', { method: 'DELETE' }),
+  },
+
+  // Orders
+  orders: {
+    create: (items: Array<{ product_id: string; quantity: number }>, paymentMethod: string) =>
+      fetchAPI('/orders', {
+        method: 'POST',
+        body: JSON.stringify({
+          items,
+          payment_method: paymentMethod,
+        }),
+      }),
+    list: (skip?: number, limit?: number, status?: string) => {
+      const params = new URLSearchParams()
+      if (skip) params.append('skip', String(skip))
+      if (limit) params.append('limit', String(limit))
+      if (status) params.append('status_filter', status)
+      return fetchAPI(`/orders?${params.toString()}`)
+    },
+    get: (id: string) => fetchAPI(`/orders/${id}`),
+  },
+
+  // Authentication
+  auth: {
+    register: async (email: string, firstName: string, lastName: string, password: string) => {
+      const response = await fetchAPI('/auth/register', {
+        method: 'POST',
+        skipAuth: true,
+        body: JSON.stringify({
+          email,
+          first_name: firstName,
+          last_name: lastName,
+          password,
+        }),
+      })
+      localStorage.setItem('accessToken', response.access_token)
+      return response
+    },
+
+    login: async (email: string, password: string) => {
+      const response = await fetchAPI('/auth/login', {
+        method: 'POST',
+        skipAuth: true,
+        body: JSON.stringify({ email, password }),
+      })
+      localStorage.setItem('accessToken', response.access_token)
+      return response
+    },
+
+    logout: () => {
+      localStorage.removeItem('accessToken')
+    },
+
+    me: () => fetchAPI('/auth/me'),
+  },
+
+  // Users
+  users: {
+    getProfile: () => fetchAPI('/users/profile'),
+    addSavedVehicle: (vehicle: {
+      make: string
+      model: string
+      year: string
+      engine?: string
+      registration?: string
+    }) =>
+      fetchAPI('/users/saved-vehicles', {
+        method: 'POST',
+        body: JSON.stringify(vehicle),
+      }),
+    getSavedVehicles: () => fetchAPI('/users/saved-vehicles'),
+    deleteSavedVehicle: (vehicleId: string) =>
+      fetchAPI(`/users/saved-vehicles/${vehicleId}`, { method: 'DELETE' }),
+  },
+}
+"
